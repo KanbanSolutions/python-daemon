@@ -17,20 +17,20 @@ import os
 import errno
 
 from lockfile import (
-    LinkFileLock,
+    FileLock,
     AlreadyLocked, LockFailed,
     NotLocked, NotMyLock,
     )
 
-
+
 class PIDFileError(Exception):
     """ Abstract base class for errors specific to PID files. """
 
 class PIDFileParseError(ValueError, PIDFileError):
     """ Raised when parsing contents of PID file fails. """
 
-
-class PIDLockFile(LinkFileLock, object):
+
+class PIDLockFile(FileLock, object):
     """ Lockfile implemented as a Unix PID file.
 
         The PID file is named by the attribute `path`. When locked,
@@ -42,10 +42,14 @@ class PIDLockFile(LinkFileLock, object):
 
         """
 
+    def __init__(self, *args, **kwargs):
+        super(PIDLockFile, self).__init__(*args, **kwargs)
+        self.pid_file = self.path + ".pid"
+
     def read_pid(self):
         """ Get the PID from the lock file.
-            """
-        result = read_pid_from_pidfile(self.path)
+        """
+        result = read_pid_from_pidfile(self.pid_file)
         return result
 
     def acquire(self, *args, **kwargs):
@@ -58,7 +62,7 @@ class PIDLockFile(LinkFileLock, object):
             """
         super(PIDLockFile, self).acquire(*args, **kwargs)
         try:
-            write_pid_to_pidfile(self.path)
+            write_pid_to_pidfile(self.pid_file)
         except OSError, exc:
             error = LockFailed("%(exc)s" % vars())
             raise error
@@ -71,7 +75,7 @@ class PIDLockFile(LinkFileLock, object):
 
             """
         if self.i_am_locking():
-            remove_existing_pidfile(self.path)
+            remove_existing_pidfile(self.pid_file)
         super(PIDLockFile, self).release()
 
     def break_lock(self):
@@ -82,9 +86,9 @@ class PIDLockFile(LinkFileLock, object):
 
             """
         super(PIDLockFile, self).break_lock()
-        remove_existing_pidfile(self.path)
+        remove_existing_pidfile(self.pid_file)
 
-
+
 class TimeoutPIDLockFile(PIDLockFile):
     """ Lockfile with default timeout, implemented as a Unix PID file.
 
@@ -108,7 +112,7 @@ class TimeoutPIDLockFile(PIDLockFile):
             timeout = self.acquire_timeout
         super(TimeoutPIDLockFile, self).acquire(timeout, *args, **kwargs)
 
-
+
 def read_pid_from_pidfile(pidfile_path):
     """ Read the PID recorded in the named PID file.
 
