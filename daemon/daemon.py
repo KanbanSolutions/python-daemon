@@ -588,8 +588,7 @@ def detach_process_context():
 
     fork_then_exit_parent(error_message=u"Failed first fork")
     os.setsid()
-    fork_then_exit_parent(error_message=u"Failed second fork"
-
+    fork_then_exit_parent(error_message=u"Failed second fork")
 
 def is_process_started_by_init():
     """ Determine if the current process is started by `init`.
